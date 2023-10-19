@@ -1,71 +1,47 @@
 # Fakebook
-![plot](./demo_image/%E6%88%AA%E5%9C%96%202023-05-13%20%E4%B8%8B%E5%8D%884.34.20.png)
 
-## Deploy
-[Deploy Link](https://gcp-fakebook-3ibtyo7zra-uc.a.run.app)
+# Introduction
+This is a group final project, and I was in charge of deploying this website onto AWS EKS. Therefore, in this README file, I'll only focus on introducing a directory, `eks_yaml_file`, which contains all the EKS-related files.
+
+# Architeture 
+The overall architecture is shown in the following picture.
+
+![plot](./demo_image/Architecture.png)
+
+The architecure is quite simple. We have our entire program packed into one pod. (Of course, this may be a bad approach. We should probably at least separate the front-end code from the back-end code, or even go further and divide the program into several small pieces and pack them into different pods. Therefore, the unit of scaling can be minimized. However, we were out of time to do so.) We have a "service" k8s component associated with the "deployment" managing our pods. We also have a "Horizontal Pod Autoscaler" and a "Cluster Autoscaler" help scaling up and down if necessary.
 
 
-## Introduction
-A social media application refer to Facebook
+# Horizontal Pod Autoscaler
+Please refer to `eks_yaml_file/final-hpa.yaml`. HPA will monitor resource utilization rate (e.g, CPU, memory usage) and increase the number of the pods if necessary.
 
-## Service
-* Registration and login, logout
-* Personal page and main page
-* Adding friends on Fakebook and view their profile
-* Post, delete and edit the posts
-* Leave your comment and like the posts
-* A chatroom to talk with your friends
-
-## 使用之第三方套件、框架、程式碼
-* **Frontend:** React, graphql, Cookie, react-router-dom, apollo, Material-UI, Ant Design, uuid, moment, react-router-dom, moment, XML
-* **Backend:** mongoose, express, bcrypt, cors, dotenv-defaults, uuid, apollo-server-express
-
-## Structure
 ```
 .
-└── backend
-    ├── models.js
-    │   ├── User
-    │   ├── ChatRoom
-    │   └── Post
-    ├── mongo.js
-    ├── resolvers.js
-    │   ├── mutations.js
-    │   ├── queries.js
-    │   └── subscriptions.js
-    ├── schema.graphql
-    └── server.js
-
 .
-└── frontend
-    ├── component
-    │   ├── constants.js
-    │   ├── displayStatus.js
-    │   ├── posts.js
-    │   │   └── post.js
-    │   └── visit.js
-    ├── App.test.js
-    ├── index.js
-    ├── reportWebVitals.js
-    ├── setupTests.js
-    ├── container
-    │   ├── signIn.js
-    │   ├── me.js
-    │   ├── App.css
-    │   ├── App.js
-    │   ├── posts.js
-    │   └── chatRoom.js
-    └── graphql
-        ├── index.js
-        ├── mutation.js
-        ├── queries.css
-        └── subscription.js
+.
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: final-deployment
+  minReplicas: 1
+  maxReplicas: 30        # Maximal and minimal number of pods for the corresponding deployment named "final-deployment"
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 40  # The HPA will monitor the CPU usage of the pods and adjust the number of replicas to maintain an average utilization close to the defined target 40%.
+    - type: Resource
+      resource:
+        name: memory
+        target:
+          type: AverageValue      # Similar rule as the case of CPU.
+          averageValue: 250Mi
 ```
 
+# Cluster Autoscaler
+Please refer to `eks_yaml_file/final-cluster-autoscaler.yaml`.
 
-## Run in local
-1. yarn install
-2. yarn build
-3. yarn start
-4. add .env file to configure your MONGO_URL
-5. open your localhost with port 80, and you will see our website
+# LoadBalancer
+Please refer to `eks_yaml_file/final-service.yaml`. 
